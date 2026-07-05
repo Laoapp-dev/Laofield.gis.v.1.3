@@ -9,14 +9,15 @@
  *    @capacitor-firebase/authentication and drop in google-services.json /
  *    GoogleService-Info.plist (see README.md).
  */
-const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+// Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAL7UAXIWLsd_br2AXtZ_9JTdmkrEDfV9c",
+    authDomain: "lao-field-gis.firebaseapp.com",
+    projectId: "lao-field-gis",
+    storageBucket: "lao-field-gis.firebasestorage.app",
+    messagingSenderId: "807413471869",
+    appId: "1:807413471869:web:4aefa7a62e5531549aef14"
+  };
 
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
