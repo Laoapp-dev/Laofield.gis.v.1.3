@@ -1,0 +1,19 @@
+{
+  "appId": "la.gis.fieldmapper",
+  "appName": "Lao Field GIS",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "Geolocation": {
+      "permissions": {
+        "ios": ["NSLocationWhenInUseUsageDescription", "NSLocationAlwaysAndWhenInUseUsageDescription"]
+      }
+    },
+    "CapacitorFirebaseAuthentication": {
+      "providers": ["google.com"]
+    }
+  }
+}

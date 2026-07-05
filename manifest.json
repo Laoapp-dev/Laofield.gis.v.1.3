@@ -1,0 +1,11 @@
+{
+  "name": "Lao Field GIS",
+  "short_name": "Field GIS",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#16302A",
+  "theme_color": "#16302A",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

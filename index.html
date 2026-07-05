@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Lao Field GIS</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#16302A" />
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet.draw for vector editing -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<!-- turf.js for area/length calculations -->
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<!-- proj4 for UTM / DD coordinate conversion -->
+<script src="https://unpkg.com/proj4@2.9.0/dist/proj4.js"></script>
+<!-- togeojson for GPX/KML import -->
+<script src="https://unpkg.com/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+<!-- tokml for KML export -->
+<script src="https://unpkg.com/tokml@0.4.0/tokml.js"></script>
+<!-- shpjs for zipped Shapefile import -->
+<script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
+<!-- PapaParse for CSV import -->
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<!-- PDF.js for georeferenced PDF overlay rendering -->
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<!-- JSZip (used by shpjs + our own GPX export helper) -->
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<!-- Firebase (compat build, simplest to wire up) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<link rel="stylesheet" href="src/css/style.css" />
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<section id="login-screen" class="screen">
+  <div class="login-card">
+    <div class="brand">
+      <img src="favicon.svg" alt="" class="brand-mark" />
+      <h1>Lao Field GIS</h1>
+      <p class="tagline">Offline-ready mapping &amp; data collection for the field</p>
+    </div>
+    <button id="google-signin-btn" class="btn btn-primary btn-block">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.6 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.5l-6.5-5.3C29.5 34.9 26.9 36 24 36c-5.3 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.4 5.4-6.3 6.8l6.5 5.3C39.9 37.4 44 31.5 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="divider"><span>or</span></div>
+    <button id="guest-continue-btn" class="btn btn-ghost btn-block">Continue without signing in</button>
+    <p class="fine-print">Signing in backs up your data to the cloud and syncs it across devices. Guest mode keeps everything only on this device.</p>
+  </div>
+</section>
+
+<!-- ===================== ONBOARDING (mandatory first-login form) ===================== -->
+<section id="onboarding-screen" class="screen hidden">
+  <div class="login-card">
+    <h2>Welcome — set up your profile</h2>
+    <p class="tagline">This is required before you can start mapping.</p>
+    <label class="field-label">Full Name</label>
+    <input id="onboard-name" class="text-input" type="text" placeholder="e.g. Somchai Vong" />
+    <label class="field-label">Country</label>
+    <select id="onboard-country" class="text-input"></select>
+    <button id="onboard-save-btn" class="btn btn-primary btn-block">Continue</button>
+    <p id="onboard-error" class="error-text hidden"></p>
+  </div>
+</section>
+
+<!-- ===================== MAIN APP ===================== -->
+<section id="app-screen" class="screen hidden">
+  <div id="map"></div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <button id="menu-btn" class="icon-btn" title="Menu">☰</button>
+    <div class="topbar-title">Lao Field GIS</div>
+    <button id="signout-btn" class="icon-btn" title="Sign out">⏻</button>
+  </div>
+
+  <!-- HUD / Status Dashboard -->
+  <div id="hud" class="hud-panel">
+    <div class="hud-row">
+      <span class="hud-dot" id="gps-dot"></span>
+      <span id="gps-status">GPS: Disconnected</span>
+    </div>
+    <div class="hud-row hud-mono">
+      <span id="hud-coords">X: —  Y: —</span>
+    </div>
+    <div class="hud-row hud-mono">
+      <span id="hud-accuracy">Accuracy: — m</span>
+      <span id="hud-altitude">Alt: — m</span>
+    </div>
+    <div class="hud-row">
+      <div class="compass-wrap">
+        <div id="compass-needle" class="compass-needle"></div>
+      </div>
+      <span id="hud-heading" class="hud-mono">Hdg: —°</span>
+      <select id="coord-format" class="coord-select" title="Coordinate system">
+        <option value="DD">DD</option>
+        <option value="DMS">DMS</option>
+        <option value="UTM">UTM</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Floating action buttons -->
+  <div class="fab-stack fab-right">
+    <button id="fab-locate" class="fab" title="Locate me">📍</button>
+    <button id="fab-layers" class="fab" title="Layer options">🗺️</button>
+    <button id="fab-tools" class="fab" title="GIS tools">🛠️</button>
+    <button id="fab-data" class="fab" title="Import / Export">⇅</button>
+  </div>
+
+  <!-- GIS tool sub-menu -->
+  <div id="tools-menu" class="floating-menu hidden">
+    <button class="tool-btn" data-tool="waypoint">📌 Waypoint</button>
+    <button class="tool-btn" data-tool="line">➖ Draw Line</button>
+    <button class="tool-btn" data-tool="polygon">⬠ Draw Polygon</button>
+    <button class="tool-btn" data-tool="measure-distance">📏 Measure Distance</button>
+    <button class="tool-btn" data-tool="measure-area">📐 Measure Area</button>
+    <button id="track-toggle-btn" class="tool-btn" data-tool="track">▶️ Start Track</button>
+    <button class="tool-btn" data-tool="clear">🗑️ Clear Active Tool</button>
+  </div>
+
+  <!-- Layer options menu -->
+  <div id="layers-menu" class="floating-menu hidden">
+    <div class="menu-title">Basemap</div>
+    <label class="radio-row"><input type="radio" name="basemap" value="street" checked /> Street Map (OSM)</label>
+    <label class="radio-row"><input type="radio" name="basemap" value="satellite" /> Satellite Imagery</label>
+    <label class="radio-row"><input type="radio" name="basemap" value="esri" /> Esri Topographic</label>
+    <div class="menu-title">Overlays</div>
+    <label class="radio-row"><input type="checkbox" id="toggle-features" checked /> My Features</label>
+    <label class="radio-row"><input type="checkbox" id="toggle-pdf-overlay" /> Georeferenced PDF Overlay</label>
+  </div>
+
+  <!-- Import / Export menu -->
+  <div id="data-menu" class="floating-menu hidden">
+    <div class="menu-title">Import</div>
+    <button class="tool-btn" data-import="gpx">Import GPX</button>
+    <button class="tool-btn" data-import="kml">Import KML</button>
+    <button class="tool-btn" data-import="geojson">Import GeoJSON</button>
+    <button class="tool-btn" data-import="csv">Import CSV (lat/lon)</button>
+    <button class="tool-btn" data-import="shp">Import Shapefile (.zip)</button>
+    <button class="tool-btn" data-import="pdf">Import Georeferenced PDF</button>
+    <div class="menu-title">Export</div>
+    <button class="tool-btn" data-export="gpx">Export GPX</button>
+    <button class="tool-btn" data-export="kml">Export KML</button>
+    <button class="tool-btn" data-export="csv">Export CSV</button>
+    <button class="tool-btn" data-export="geojson">Export GeoJSON</button>
+  </div>
+  <input type="file" id="file-input" class="hidden" />
+
+  <!-- Attribute data entry sheet -->
+  <div id="attribute-sheet" class="bottom-sheet hidden">
+    <div class="sheet-handle"></div>
+    <h3 id="attribute-sheet-title">Feature Details</h3>
+    <label class="field-label">Location Name</label>
+    <input id="attr-name" class="text-input" type="text" placeholder="e.g. Ban Naxay well" />
+    <label class="field-label">Notes / Remarks</label>
+    <textarea id="attr-notes" class="text-input" rows="3" placeholder="Field observations..."></textarea>
+    <label class="field-label">Custom Attribute (key: value, one per line)</label>
+    <textarea id="attr-custom" class="text-input" rows="2" placeholder="condition: good&#10;surveyor: J. Doe"></textarea>
+    <div class="sheet-actions">
+      <button id="attr-cancel-btn" class="btn btn-ghost">Cancel</button>
+      <button id="attr-save-btn" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+
+  <!-- Side menu -->
+  <div id="side-menu" class="side-menu hidden">
+    <div class="side-menu-header">
+      <img id="profile-pic" class="profile-pic" src="" alt="" />
+      <div>
+        <div id="profile-name" class="profile-name">—</div>
+        <div id="profile-country" class="profile-country">—</div>
+      </div>
+    </div>
+    <div class="side-menu-item hidden" id="upgrade-account-item">☁️ Sign in with Google to back up data</div>
+    <div class="side-menu-item" id="feature-list-item">📋 My Features</div>
+    <div class="side-menu-item" id="pdf-calibrate-item">🧭 Calibrate PDF Overlay</div>
+    <div id="feature-list" class="feature-list hidden"></div>
+  </div>
+  <div id="scrim" class="scrim hidden"></div>
+
+  <div id="toast" class="toast hidden"></div>
+</section>
+
+<script src="src/js/firebase-config.js"></script>
+<script src="src/js/storage.js"></script>
+<script src="src/js/coords.js"></script>
+<script src="src/js/auth.js"></script>
+<script src="src/js/onboarding.js"></script>
+<script src="src/js/layers.js"></script>
+<script src="src/js/map.js"></script>
+<script src="src/js/hud.js"></script>
+<script src="src/js/gis-tools.js"></script>
+<script src="src/js/importExport.js"></script>
+<script src="src/js/app.js"></script>
+</body>
+</html>
