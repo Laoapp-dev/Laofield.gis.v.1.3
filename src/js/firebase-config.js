@@ -11,13 +11,13 @@
  */
 // Your web app's Firebase configuration
   const firebaseConfig = {
-    apiKey: "AIzaSyAL7UAXIWLsd_br2AXtZ_9JTdmkrEDfV9c",
-    authDomain: "lao-field-gis.firebaseapp.com",
-    projectId: "lao-field-gis",
-    storageBucket: "lao-field-gis.firebasestorage.app",
-    messagingSenderId: "807413471869",
-    appId: "1:807413471869:web:4aefa7a62e5531549aef14"
-  };
+  apiKey: "AIzaSyAL7UAXIWLsd_br2AXtZ_9JTdmkrEDfV9c",
+  authDomain: "lao-field-gis.firebaseapp.com",
+  projectId: "lao-field-gis",
+  storageBucket: "lao-field-gis.firebasestorage.app",
+  messagingSenderId: "807413471869",
+  appId: "1:807413471869:web:4aefa7a62e5531549aef14"
+};
 
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
